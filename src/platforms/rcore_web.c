@@ -319,7 +319,7 @@ void ToggleBorderlessWindowed(void)
 // Set window state: maximized, if resizable
 void MaximizeWindow(void)
 {
-    if (glfwGetWindowAttrib(platform.handle, GLFW_RESIZABLE) == GLFW_TRUE && !(CORE.Window.flags & FLAG_WINDOW_MAXIMIZED))
+    if ((glfwGetWindowAttrib(platform.handle, GLFW_RESIZABLE) == GLFW_TRUE) && !(CORE.Window.flags & FLAG_WINDOW_MAXIMIZED))
     {
         platform.unmaximizedWidth = CORE.Window.screen.width;
         platform.unmaximizedHeight = CORE.Window.screen.height;
@@ -342,7 +342,7 @@ void MinimizeWindow(void)
 // Set window state: not minimized/maximized
 void RestoreWindow(void)
 {
-    if (glfwGetWindowAttrib(platform.handle, GLFW_RESIZABLE) == GLFW_TRUE && (CORE.Window.flags & FLAG_WINDOW_MAXIMIZED))
+    if ((glfwGetWindowAttrib(platform.handle, GLFW_RESIZABLE) == GLFW_TRUE) && (CORE.Window.flags & FLAG_WINDOW_MAXIMIZED))
     {
         if (platform.unmaximizedWidth && platform.unmaximizedHeight) glfwSetWindowSize(platform.handle, platform.unmaximizedWidth, platform.unmaximizedHeight);
 
@@ -771,8 +771,11 @@ Vector2 GetWindowPosition(void)
 // Get window scale DPI factor for current monitor
 Vector2 GetWindowScaleDPI(void)
 {
-    TRACELOG(LOG_WARNING, "GetWindowScaleDPI() not implemented on target platform");
-    return (Vector2){ 1.0f, 1.0f };
+    // NOTE: Returned scale is relative to the current monitor where the browser window is located
+    Vector2 scale = { 1.0f, 1.0f };
+    scale.x = (float)EM_ASM_DOUBLE( { return window.devicePixelRatio; } );
+    scale.y = scale.x;
+    return scale;
 }
 
 // Set clipboard text content
@@ -803,6 +806,16 @@ const char *GetClipboardText(void)
     // later on if available... and clean it for future accesses
 */
     return NULL;
+}
+
+// Get clipboard image
+Image GetClipboardImage(void)
+{
+    Image image = { 0 };
+
+    TRACELOG(LOG_WARNING, "GetClipboardImage() not implemented on target platform");
+
+    return image;
 }
 
 // Show mouse cursor
@@ -1651,10 +1664,10 @@ static EM_BOOL EmscriptenResizeCallback(int eventType, const EmscriptenUiEvent *
     int height = EM_ASM_INT( return window.innerHeight; );
 
     if (width < (int)CORE.Window.screenMin.width) width = CORE.Window.screenMin.width;
-    else if (width > (int)CORE.Window.screenMax.width && CORE.Window.screenMax.width > 0) width = CORE.Window.screenMax.width;
+    else if ((width > (int)CORE.Window.screenMax.width) && (CORE.Window.screenMax.width > 0)) width = CORE.Window.screenMax.width;
 
     if (height < (int)CORE.Window.screenMin.height) height = CORE.Window.screenMin.height;
-    else if (height > (int)CORE.Window.screenMax.height && CORE.Window.screenMax.height > 0) height = CORE.Window.screenMax.height;
+    else if ((height > (int)CORE.Window.screenMax.height) && (CORE.Window.screenMax.height > 0)) height = CORE.Window.screenMax.height;
 
     emscripten_set_canvas_element_size("#canvas", width, height);
 
@@ -1709,7 +1722,7 @@ static EM_BOOL EmscriptenGamepadCallback(int eventType, const EmscriptenGamepadE
     for (int i = 0; i < gamepadEvent->numButtons; ++i) TRACELOGD("Button %d: Digital: %d, Analog: %g", i, gamepadEvent->digitalButton[i], gamepadEvent->analogButton[i]);
     */
 
-    if ((gamepadEvent->connected) && (gamepadEvent->index < MAX_GAMEPADS))
+    if (gamepadEvent->connected && (gamepadEvent->index < MAX_GAMEPADS))
     {
         CORE.Input.Gamepad.ready[gamepadEvent->index] = true;
         sprintf(CORE.Input.Gamepad.name[gamepadEvent->index], "%s", gamepadEvent->id);

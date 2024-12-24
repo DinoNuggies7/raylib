@@ -68,7 +68,7 @@
         // NOTE: Those functions require linking with winmm library
         //#pragma warning(disable: 4273)
         __declspec(dllimport) unsigned int __stdcall timeEndPeriod(unsigned int uPeriod);
-        //#pragma warning(default: 4273) 
+        //#pragma warning(default: 4273)
     #endif
 #endif
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)
@@ -322,7 +322,7 @@ void SetWindowState(unsigned int flags)
     }
 
     // State change: FLAG_FULLSCREEN_MODE
-    if ((CORE.Window.flags & FLAG_FULLSCREEN_MODE) != (flags & FLAG_FULLSCREEN_MODE))
+    if ((CORE.Window.flags & FLAG_FULLSCREEN_MODE) != (flags & FLAG_FULLSCREEN_MODE) && ((flags & FLAG_FULLSCREEN_MODE) > 0))
     {
         ToggleFullscreen();     // NOTE: Window state flag updated inside function
     }
@@ -967,32 +967,29 @@ const char *GetClipboardText(void)
     return glfwGetClipboardString(platform.handle);
 }
 
-#if defined(SUPPORT_CLIPBOARD_IMAGE)
 // Get clipboard image
 Image GetClipboardImage(void)
 {
-    Image image = {0};
+    Image image = { 0 };
+
+#if defined(SUPPORT_CLIPBOARD_IMAGE)
+#if defined(_WIN32)
     unsigned long long int dataSize = 0;
-    void* fileData = NULL;
+    void *fileData = NULL;
+    int width = 0;
+    int height = 0;
 
-#ifdef _WIN32
-    int width, height;
     fileData  = (void*)Win32GetClipboardImageData(&width, &height, &dataSize);
-#else
-    TRACELOG(LOG_WARNING, "Clipboard image: PLATFORM_DESKTOP_GLFW doesn't implement `GetClipboardImage` for this OS");
-#endif
 
-    if (fileData == NULL)
-    {
-        TRACELOG(LOG_WARNING, "Clipboard image: Couldn't get clipboard data.");
-    }
-    else
-    {
-        image = LoadImageFromMemory(".bmp", fileData, (int)dataSize);
-    }
+    if (fileData == NULL) TRACELOG(LOG_WARNING, "Clipboard image: Couldn't get clipboard data.");
+    else image = LoadImageFromMemory(".bmp", fileData, (int)dataSize);
+#else
+    TRACELOG(LOG_WARNING, "GetClipboardImage() not implemented on target platform");
+#endif
+#endif // SUPPORT_CLIPBOARD_IMAGE
+
     return image;
 }
-#endif // SUPPORT_CLIPBOARD_IMAGE
 
 // Show mouse cursor
 void ShowCursor(void)
@@ -1091,7 +1088,7 @@ int SetGamepadMappings(const char *mappings)
 // Set gamepad vibration
 void SetGamepadVibration(int gamepad, float leftMotor, float rightMotor, float duration)
 {
-    TRACELOG(LOG_WARNING, "GamepadSetVibration() not available on target platform");
+    TRACELOG(LOG_WARNING, "SetGamepadVibration() not available on target platform");
 }
 
 // Set mouse position XY
